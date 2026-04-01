@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TranspoBot - Gestion de Transport</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+
+  /* NAVBAR */
+  .navbar {
+    background: #2d7a3a;
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .navbar-logo { font-size: 28px; }
+  .navbar-title { font-size: 22px; font-weight: 700; }
+  .navbar-sub { font-size: 13px; opacity: 0.85; }
+
+  /* LAYOUT */
+  .container {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  /* CARDS */
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* KPI */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .kpi-box {
+    background: #f1f8f2;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid #c8e6c9;
+  }
+  .kpi-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #2d7a3a;
+  }
+  .kpi-label {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: #2d7a3a;
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+  }
+  td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+  tr:hover { background: #f1f8f2; }
+  .badge {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.termine { background: #e8f5e9; color: #2e7d32; }
+  .badge.en_cours { background: #fff3e0; color: #e65100; }
+  .badge.planifie { background: #e3f2fd; color: #1e5c2a; }
+  .badge.annule { background: #fce4ec; color: #c62828; }
+
+  /* CHATBOT */
+  .chat-section { position: sticky; top: 20px; }
+  .chat-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .suggestion {
+    background: #e8f5e9;
+    color: #2d7a3a;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .suggestion:hover { background: #2d7a3a; color: white; }
+
+  .chat-box {
+    height: 380px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 16px;
+    background: #fafafa;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .message {
+    padding: 10px 14px;
+    border-radius: 12px;
+    max-width: 85%;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .message.bot {
+    background: white;
+    border: 1px solid #eee;
+    align-self: flex-start;
+  }
+  .message.user {
+    background: #2d7a3a;
+    color: white;
+    align-self: flex-end;
+  }
+  .message.loading {
+    background: white;
+    border: 1px solid #eee;
+    align-self: flex-start;
+    color: #999;
+    font-style: italic;
+  }
+
+  /* SQL RESULT */
+  .sql-result {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    overflow-x: auto;
+  }
+  .sql-code {
+    background: #263238;
+    color: #80cbc4;
+    padding: 8px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 11px;
+    margin-bottom: 8px;
+    overflow-x: auto;
+  }
+
+  .chat-input-area {
+    display: flex;
+    gap: 10px;
+  }
+  .chat-input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    font-size: 13px;
+    outline: none;
+    transition: 0.2s;
+  }
+  .chat-input:focus { border-color: #2d7a3a; }
+  .send-btn {
+    background: #2d7a3a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.2s;
+  }
+  .send-btn:hover { background: #1e5c2a; }
+  .send-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  /* VEHICULES */
+  .veh-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .veh-card {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+  }
+  .veh-immat { font-weight: 700; color: #2d7a3a; }
+  .veh-info { color: #666; margin-top: 2px; }
+  .veh-status {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .veh-status.actif { background: #e8f5e9; color: #2e7d32; }
+  .veh-status.maintenance { background: #fff3e0; color: #e65100; }
+  .veh-status.en_panne { background: #fce4ec; color: #c62828; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <div class="navbar-logo">🚌</div>
+  <div>
+    <div class="navbar-title">TranspoBot</div>
+    <div class="navbar-sub">Assistant IA — Gestion de Transport</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- COLONNE GAUCHE -->
+  <div>
+
+    <!-- TABLEAU DE BORD -->
+    <div class="card">
+      <div class="card-title">📊 Tableau de bord</div>
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-box"><div class="kpi-value" id="kpi-termines">...</div><div class="kpi-label">Trajets terminés</div></div>
+        <div class="kpi-box"><div class="kpi-value" id="kpi-encours">...</div><div class="kpi-label">En cours</div></div>
+        <div class="kpi-box"><div class="kpi-value" id="kpi-vehicules">...</div><div class="kpi-label">Véhicules actifs</div></div>
+        <div class="kpi-box"><div class="kpi-value" id="kpi-incidents">...</div><div class="kpi-label">Incidents ouverts</div></div>
+      </div>
+    </div>
+
+    <!-- VEHICULES -->
+    <div class="card">
+      <div class="card-title">🚗 Véhicules</div>
+      <div class="veh-grid" id="veh-grid">
+        <div style="color:#999; font-size:13px;">Chargement...</div>
+      </div>
+    </div>
+
+    <!-- TRAJETS -->
+    <div class="card">
+      <div class="card-title">🕐 Trajets récents</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Ligne</th>
+            <th>Chauffeur</th>
+            <th>Date</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody id="trajets-body">
+          <tr><td colspan="4" style="text-align:center;color:#999;">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- COLONNE DROITE - CHATBOT -->
+  <div class="chat-section">
+    <div class="card">
+      <div class="card-title">💬 Assistant TranspoBot</div>
+
+      <div class="chat-suggestions">
+        <button class="suggestion" onclick="sendSuggestion('Combien de trajets cette semaine ?')">Trajets cette semaine</button>
+        <button class="suggestion" onclick="sendSuggestion('Quel chauffeur a le plus d incidents ?')">Meilleur chauffeur</button>
+        <button class="suggestion" onclick="sendSuggestion('Quels véhicules sont en maintenance ?')">Véhicules en maintenance</button>
+        <button class="suggestion" onclick="sendSuggestion('Quels sont les incidents graves ?')">Incidents graves</button>
+        <button class="suggestion" onclick="sendSuggestion('Quelle est la recette du mois de mars 2026 ?')">Recette mars 2026</button>
+      </div>
+
+      <div class="chat-box" id="chat-box">
+        <div class="message bot">
+          🤖 Bonjour ! Je suis TranspoBot, votre assistant intelligent.<br>
+          Posez-moi n'importe quelle question sur votre flotte, vos trajets ou vos chauffeurs !
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chat-input" placeholder="Ex: Combien de trajets ce mois-ci ?" onkeypress="if(event.key==='Enter') sendMessage()">
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">Envoyer ➤</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+
+// Charger KPI
+async function loadKPI() {
+  try {
+    const [trajets, vehicules, incidents] = await Promise.all([
+      fetch(${API}/trajets).then(r => r.json()),
+      fetch(${API}/vehicules).then(r => r.json()),
+      fetch(${API}/incidents).then(r => r.json())
+    ]);
+
+    document.getElementById('kpi-termines').textContent = trajets.filter(t => t.statut === 'termine').length;
+    document.getElementById('kpi-encours').textContent = trajets.filter(t => t.statut === 'en_cours').length;
+    document.getElementById('kpi-vehicules').textContent = vehicules.filter(v => v.statut === 'actif').length;
+    document.getElementById('kpi-incidents').textContent = incidents.length;
+
+    // Véhicules
+    const vehGrid = document.getElementById('veh-grid');
+    vehGrid.innerHTML = vehicules.map(v => `
+      <div class="veh-card">
+        <div class="veh-immat">${v.immatriculation}</div>
+        <div class="veh-info">${v.marque} ${v.modele}</div>
+        <div class="veh-info">${v.kilometrage?.toLocaleString()} km</div>
+        <span class="veh-status ${v.statut}">${v.statut}</span>
+      </div>
+    `).join('');
+
+    // Trajets
+    const tbody = document.getElementById('trajets-body');
+    const chauffeurs = await fetch(${API}/chauffeurs).then(r => r.json());
+    const lignes = await fetch(${API}/lignes).then(r => r.json()).catch(() => []);
+
+    tbody.innerHTML = trajets.slice(0, 8).map(t => {
+      const ch = chauffeurs.find(c => c.id === t.chauffeur_id);
+      const lg = lignes.find(l => l.id === t.ligne_id);
+      const date = t.date_heure_depart ? new Date(t.date_heure_depart).toLocaleDateString('fr-FR') : '-';
+      return `
+        <tr>
+          <td>${lg ? lg.nom : 'Ligne ' + t.ligne_id}</td>
+          <td>${ch ? ch.nom : '-'}</td>
+          <td>${date}</td>
+          <td><span class="badge ${t.statut}">${t.statut}</span></td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch(e) {
+    console.error('Erreur chargement:', e);
+  }
+}
+
+// Envoyer message
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const question = input.value.trim();
+  if (!question) return;
+
+  input.value = '';
+  addMessage(question, 'user');
+  addMessage('⏳ Analyse en cours...', 'loading');
+
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const res = await fetch(${API}/chat, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    const data = await res.json();
+
+    removeLoading();
+
+    if (data.erreur) {
+      addMessage(❌ Erreur : ${data.erreur}, 'bot');
+    } else {
+      let html = '';
+      if (data.sql) {
+        html += <div class="sql-code">${data.sql}</div>;
+      }
+      if (data.resultat && data.resultat.length > 0) {
+        const keys = Object.keys(data.resultat[0]);
+        html += `<div class="sql-result"><table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <tr>${keys.map(k => <th style="background:#eee;padding:4px 8px;text-align:left;">${k}</th>).join('')}</tr>
+          ${data.resultat.map(row => <tr>${keys.map(k => `<td style="padding:4px 8px;border-bottom:1px solid #eee;">${row[k] ?? '-'}</td>).join('')}</tr>`).join('')}
+        </table></div>`;
+      } else {
+        html += <div style="color:#999;font-size:12px;margin-top:6px;">Aucun résultat trouvé.</div>;
+      }
+      addMessage(html, 'bot', true);
+    }
+  } catch(e) {
+    removeLoading();
+    addMessage('❌ Impossible de contacter le serveur. Vérifiez que le backend tourne.', 'bot');
+  }
+
+  document.getElementById('send-btn').disabled = false;
+}
+
+function sendSuggestion(text) {
+  document.getElementById('chat-input').value = text;
+  sendMessage();
+}
+
+function addMessage(content, type, isHTML = false) {
+  const box = document.getElementById('chat-box');
+  const div = document.createElement('div');
+  div.className = message ${type};
+  if (isHTML) div.innerHTML = content;
+  else div.textContent = content;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function removeLoading() {
+  const loading = document.querySelector('.message.loading');
+  if (loading) loading.remove();
+}
+
+// Initialisation
+loadKPI();
+</script>
+
+</body>
+</html>
